@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS Mealdb (
     Feel     VARCHAR(25),
     Price    INTEGER,
     Rating   FLOAT,
+    Address  VARCHAR(50),
     REVIEW_CONTENT  TEXT,
     Lat       Decimal(8,6),
     Lng       Decimal(9,6),

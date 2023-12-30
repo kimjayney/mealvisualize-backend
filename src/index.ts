@@ -44,6 +44,7 @@ export default {
 				}), {headers})
 			  }
 		}
+		 
 
 		if (pathname == '/api/get') {
 			const all = ['Location','mealType','feel', 'price', 'rating' ]
@@ -104,22 +105,23 @@ export default {
 			const feel = params.get('feel')
 			const price = params.get('price')
 			const rating = params.get('rating')
+			const address = params.get('address')
 			const REVIEW_CONTENT = params.get('review_content')
 			const lat = params.get('lat')
 			const lng = params.get('lng')
 
 			const { results } = await env.DB.prepare(
-				`SELECT * FROM Mealdb WHERE NAME = ?`
-			  ).bind(name).all();
+				`SELECT * FROM Mealdb WHERE NAME = ? and address = ?`
+			  ).bind(name, address).all();
 			  
 			  if (results?.length < 1) {
 				const { results } = await env.DB.prepare(
-				  "INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng,ADMIN_OK) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+				  "INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng,Address, ADMIN_OK) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 				)
-				.bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, 'false')
+				.bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, address , 'false')
 				.all();
 				console.log(results)
-				if (results?.length) {
+				if (results) {
 					return new Response(JSON.stringify({
 						success: true, 
 						status: true,
@@ -127,24 +129,16 @@ export default {
 						message_en_US:"Created",
 						message_ko_KR: "정상등록됨. 관리자 승인후 올라감.", 
 					}), {headers})
-				} else {
-					return new Response(JSON.stringify({
-						success: true, 
-						status: false,
-						code: 500,
-						message_en_US:"already exists",
-						message_ko_KR: "이미 존재함", 
-					}), {headers})
 				}
 				
 			  } else {
-				// not auth
+				
 				return new Response(JSON.stringify({
 					success: true, 
 					status: false,
 					code: 500,
 					message_en_US:"Error",
-					message_ko_KR: "db error", 
+					message_ko_KR: "이미 등록되어있음", 
 				}), {headers})
 			  }
 		}
