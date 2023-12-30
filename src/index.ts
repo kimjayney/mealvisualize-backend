@@ -8,10 +8,12 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
- 
+import { v4 as uuidv4 } from 'uuid';
+
 export interface Env {
 	DB: D1Database;
 }
+
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -97,7 +99,7 @@ export default {
 				}), {headers})
 			} 
 		}
-
+		
 		if (pathname == '/api/post') {
 			const name = params.get('name')
 			const location = params.get('locations')
@@ -109,6 +111,7 @@ export default {
 			const REVIEW_CONTENT = params.get('review_content')
 			const lat = params.get('lat')
 			const lng = params.get('lng')
+			const uuid = uuidv4()
 
 			const { results } = await env.DB.prepare(
 				`SELECT * FROM Mealdb WHERE NAME = ? and Address = ?`
@@ -116,12 +119,22 @@ export default {
 			  
 			  if (results?.length < 1) {
 				const { results } = await env.DB.prepare(
-				  "INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng, Address, ADMIN_OK) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+				  "INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng, Address, ADMIN_OK, uuid) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 				)
-				.bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, address , 'false')
+				.bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, address , 'false', uuid)
 				.all();
 				console.log(results)
 				if (results) {
+					const replyText = {
+						text : `새로운 맛집 승인 요청입니다. ${name}, ${mealtype}, ${location}, ${rating}, ${address}, ${REVIEW_CONTENT}, ${lat}, ${lng}
+						승인하기: https://backend.rainclab.workers.dev/api/admin_ok?secretkey=${env.SECRET_ACCEPT_MEAL}&mealid=${uuid}`,
+					}
+					const slackPoster = await fetch(env.SECRET_SLACK_WEBHOOK, {
+						body: JSON.stringify(replyText) ,
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+					});
+
 					return new Response(JSON.stringify({
 						success: true, 
 						status: true,
@@ -131,6 +144,7 @@ export default {
 					}), {headers})
 				}
 				
+
 			  } else {
 				
 				return new Response(JSON.stringify({
@@ -147,7 +161,7 @@ export default {
 			const mealid = params.get('mealid')
 			if (secretkey === env.SECRET_ACCEPT_MEAL) {
 				const { results } = await env.DB.prepare(
-					`UPDATE Mealdb set ADMIN_OK = true where MealId = ?`
+					`UPDATE Mealdb set ADMIN_OK = true where uuid = ?`
 					).bind(mealid).all();
 
 				if (results) {
