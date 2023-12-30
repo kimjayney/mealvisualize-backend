@@ -111,12 +111,12 @@ export default {
 			const lng = params.get('lng')
 
 			const { results } = await env.DB.prepare(
-				`SELECT * FROM Mealdb WHERE NAME = ? and address = ?`
+				`SELECT * FROM Mealdb WHERE NAME = ? and Address = ?`
 			  ).bind(name, address).all();
 			  
 			  if (results?.length < 1) {
 				const { results } = await env.DB.prepare(
-				  "INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng,Address, ADMIN_OK) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+				  "INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng, Address, ADMIN_OK) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 				)
 				.bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, address , 'false')
 				.all();
