@@ -147,8 +147,9 @@ export default {
 					}), {headers});
 				} else {
 					if (checkSameBuilding.length > 0) { 
-						lat -= 0.0005000050000
-						lng -= 0.0000070000000
+						// 중복건물 달팽이 식으로 그리기 안되나 이거?ㅠㅠ
+						lat -= 0.0000500000000
+						lng -= 0.0000500000000
 						console.log("이후:", lat, lng)
 					}
 					
