@@ -99,6 +99,15 @@ export default {
 				}), {headers})
 			} 
 		}
+		if (pathname == '/favicon.ico') {
+			return new Response(JSON.stringify({
+				success: true, 
+				status: true,
+				code: 200,
+				message_en_US:"there is no favicon",
+				message_ko_KR: "파비콘 없어요", 
+				}), {headers});
+		}
 		
 		if (pathname == '/api/post') {
 			const name = params.get('name')
@@ -109,52 +118,77 @@ export default {
 			const rating = params.get('rating')
 			const address = params.get('address')
 			const REVIEW_CONTENT = params.get('review_content')
-			const lat = params.get('lat')
-			const lng = params.get('lng')
+			let lat = params.get('lat')
+			let lng = params.get('lng')
 			const uuid = uuidv4()
-
-			const { results } = await env.DB.prepare(
-				`SELECT * FROM Mealdb WHERE NAME = ? and Address = ?`
-			  ).bind(name, address).all();
-			  
-			  if (results?.length < 1) {
-				const { results } = await env.DB.prepare(
-				  "INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng, Address, ADMIN_OK, uuid) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-				)
-				.bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, address , 'false', uuid)
-				.all();
-				console.log(results)
-				if (results) {
-					const replyText = {
-						text : `새로운 맛집 승인 요청입니다. ${name}, ${mealtype}, ${location}, ${rating}, ${address}, ${REVIEW_CONTENT}, ${lat}, ${lng}
-						승인하기: https://backend.rainclab.workers.dev/api/admin_ok?secretkey=${env.SECRET_ACCEPT_MEAL}&mealid=${uuid}`,
-					}
-					const slackPoster = await fetch(env.SECRET_SLACK_WEBHOOK, {
-						body: JSON.stringify(replyText) ,
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-					});
-
+			const replyText = {
+				text : `새로운 맛집 승인 요청입니다. ${name}, ${mealtype}, ${location}, ${rating}, ${address}, ${REVIEW_CONTENT}, ${lat}, ${lng}
+				승인하기: https://backend.rainclab.workers.dev/api/admin_ok?secretkey=${env.SECRET_ACCEPT_MEAL}&mealid=${uuid}`,
+			}
+			const sameCompanyAddress = (name, address) => new Promise((resolve, reject) => {
+				return env.DB.prepare(`SELECT * FROM Mealdb WHERE NAME = ? and Address = ?`).bind(name, address).all().then((row) => {
+					resolve(row.results)
+				})
+			});
+			const sameCompanyAddressChecker = (address) => new Promise((resolve, reject) => {
+				return env.DB.prepare(`SELECT * FROM Mealdb WHERE Address = ? limit 0,1`).bind(address).all().then((row) => {
+					resolve(row.results)
+				})
+			});
+			
+			return Promise.all([sameCompanyAddress(name,address), sameCompanyAddressChecker(address)]).then(([checkCompanyAddress, checkSameBuilding]) => {
+				if (checkCompanyAddress.length > 0) {
 					return new Response(JSON.stringify({
 						success: true, 
-						status: true,
-						code: 201,
-						message_en_US:"Created",
-						message_ko_KR: "정상등록됨. 관리자 승인후 올라감.", 
-					}), {headers})
-				}
-				
-
-			  } else {
-				
-				return new Response(JSON.stringify({
-					success: true, 
-					status: false,
-					code: 500,
-					message_en_US:"Error",
-					message_ko_KR: "이미 등록되어있음", 
-				}), {headers})
-			  }
+						status: false,
+						code: 500,
+						message_en_US:"Error",
+						message_ko_KR: "이미 등록되어있음", 
+					}), {headers});
+				} else {
+					if (checkSameBuilding.length > 0) { 
+						lat -= 0.0000000000025
+						lng -= 0.0000000000025
+						console.log("이후:", lat, lng)
+					}
+					
+					return env.DB.prepare(
+						"INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng, Address, ADMIN_OK, uuid) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+					).bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, address , 'false', uuid).all()
+					.then((result) => { 
+						const slackPoster = fetch(env.SECRET_SLACK_WEBHOOK, {
+							body: JSON.stringify(replyText) ,
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+						});
+						return new Response(JSON.stringify({
+							success: true, 
+							status: true,
+							code: 201,
+							message_en_US:"Success",
+							message_ko_KR: "정상등록됨. 관리자 승인후 올라감.", 
+							}), {headers})
+					})
+					.catch((result) => {
+						const errorMessage = {
+							text : `errorMessage when register: ${result}`
+						}
+						const slackPoster = fetch(env.SECRET_SLACK_WEBHOOK, {
+							body: JSON.stringify(replyText) ,
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+						});
+						return new Response(JSON.stringify({
+							success: true, 
+							status: false,
+							code: 500,
+							message_en_US:"Error",
+							message_ko_KR: "디비에러", 
+						}), {headers})
+					}
+					)
+				} 
+			});
 		}
 		if (pathname == '/api/admin_ok') {
 			const secretkey = params.get('secretkey')
@@ -192,8 +226,6 @@ export default {
 				}), {headers})
 			}
 		}
-	 
-
-		return new Response('mealdb api server');
+	  
 	},
 };
