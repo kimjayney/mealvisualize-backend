@@ -147,8 +147,8 @@ export default {
 					}), {headers});
 				} else {
 					if (checkSameBuilding.length > 0) { 
-						lat -= 0.0000000000025
-						lng -= 0.0000000000025
+						lat -= 0.0000000050000
+						lng -= 0.0000000050000
 						console.log("이후:", lat, lng)
 					}
 					
