@@ -156,35 +156,42 @@ export default {
 						"INSERT INTO Mealdb(NAME, Location, Mealtype, Feel, Price, Rating, REVIEW_CONTENT, Lat, Lng, Address, ADMIN_OK, uuid) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 					).bind(name, location, mealtype, feel,price,rating,REVIEW_CONTENT,lat, lng, address , 'false', uuid).all()
 					.then((result) => { 
-						const slackPoster = fetch(env.SECRET_SLACK_WEBHOOK, {
+						console.log(replyText)
+						return fetch(env.SECRET_SLACK_WEBHOOK, {
 							body: JSON.stringify(replyText) ,
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
-						});
-						return new Response(JSON.stringify({
-							success: true, 
-							status: true,
-							code: 201,
-							message_en_US:"Success",
-							message_ko_KR: "정상등록됨. 관리자 승인후 올라감.", 
-							}), {headers})
+						}).then(() => { 
+								return new Response(JSON.stringify({
+									success: true, 
+									status: true,
+									code: 201,
+									message_en_US:"Success",
+									message_ko_KR: "정상등록됨. 관리자 승인후 올라감.", 
+									}), {headers})
+							}
+						);
+						
 					})
 					.catch((result) => {
 						const errorMessage = {
 							text : `errorMessage when register: ${result}`
 						}
-						const slackPoster = fetch(env.SECRET_SLACK_WEBHOOK, {
+						
+						return fetch(env.SECRET_SLACK_WEBHOOK, {
 							body: JSON.stringify(replyText) ,
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
+						}).then(() => {
+							return new Response(JSON.stringify({
+								success: true, 
+								status: false,
+								code: 500,
+								message_en_US:"Error",
+								message_ko_KR: "디비에러", 
+							}), {headers})
 						});
-						return new Response(JSON.stringify({
-							success: true, 
-							status: false,
-							code: 500,
-							message_en_US:"Error",
-							message_ko_KR: "디비에러", 
-						}), {headers})
+						
 					}
 					)
 				} 
