@@ -7,6 +7,8 @@ binding = "DB" # i.e. available in your Worker on env.DB
 database_name = "mealdb"
 database_id = "d050b646-07e9-44e2-b0fc-c55e0c5c33ec"
 preview_database_id = "DB"
+migrations_table = "d1migrations" # Customize this value to change your applied migrations table name
+migrations_dir = "d1migrationsfolder" # Customize this value to rename the `migrations` folder
 
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.
